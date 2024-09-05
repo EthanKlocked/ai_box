@@ -73,10 +73,6 @@ This project is a NestJS-based AI service that analyzes text content, particular
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-[MIT License](LICENSE)
-
 ## Acknowledgements
 
 - This project uses [NestJS](https://nestjs.com/)
