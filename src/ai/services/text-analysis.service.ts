@@ -30,7 +30,7 @@ export class TextAnalysisService {
 			3. Discriminatory slurs
 
 			Masking rules:
-			- Replace only explicit inappropriate words with ✿✿✿ (use the same number of ✿ as original text length)
+			- Replace only explicit inappropriate words with 🐾🐾🐾 (use the same number of 🐾 as original text length)
 			- Keep all other content intact, including negative expressions
 			- Preserve the original context and emotion
 
@@ -40,7 +40,7 @@ export class TextAnalysisService {
 			- inappropriateContent: Array of objects containing:
 				- originalText: the inappropriate text found
 				- category: type of inappropriate content
-				- maskedText: text with ✿✿✿ replacing the inappropriate parts
+				- maskedText: text with 🐾🐾🐾 replacing the inappropriate parts
 			- maskedContent: Full text with all inappropriate parts masked (if any found)
 			- hasInappropriateContent: boolean
 
