@@ -24,23 +24,39 @@ export class TextAnalysisService {
 		});
 
 		const prompt = PromptTemplate.fromTemplate(`
-            Analyze the following diary entry. Focus on the quality and clarity of the content, regardless of its length. If the content is unclear, incoherent, or lacks meaningful information, assign a low confidence score.
+			First, check the following diary entry for inappropriate content:
+			1. Profanity and curse words
+			2. Explicit sexual content or sexual slurs
+			3. Discriminatory slurs
 
-            Provide the following information in English:
-            1. Main category (Choose one: Work, Personal, Family, Health, Relationships, Education, Hobbies, Travel, Finance, Spirituality)
-            2. Subcategories (List up to 3 specific subcategories related to the main category, separated by commas)
-            3. Primary emotion expressed (if clearly evident from the text)
-            4. Secondary emotion (Another emotion present in the entry, or "None" if not applicable)
-            5. Up to five key words or phrases in English (translate if necessary)
-            6. Overall tone of the entry (e.g., positive, negative, neutral, reflective, humorous, serious)
-            7. Time focus (past, present, future, or a combination)
-            8. Confidence score (0-100, based on the clarity and meaningfulness of the content. Use lower scores for vague or unclear entries)
+			Masking rules:
+			- Replace only explicit inappropriate words with ✿✿✿ (use the same number of ✿ as original text length)
+			- Keep all other content intact, including negative expressions
+			- Preserve the original context and emotion
 
-            Format the output as a JSON object with keys: category, subcategories (as an array), primaryEmotion, secondaryEmotion, keywords (as an array), tone, timeFocus, and confidenceScore.
+			Analyze the diary entry and provide the following in a JSON response with two sections:
 
-            IMPORTANT: Return ONLY the JSON object, without any additional text, markdown formatting, or code blocks. Ensure all fields, including keywords, are in English.
+			1. Content Moderation:
+			- inappropriateContent: Array of objects containing:
+				- originalText: the inappropriate text found
+				- category: type of inappropriate content
+				- maskedText: text with ✿✿✿ replacing the inappropriate parts
+			- maskedContent: Full text with all inappropriate parts masked (if any found)
+			- hasInappropriateContent: boolean
 
-            Diary entry: {input_text}
+			2. Content Analysis:
+			- category: Main category (Choose one: Work, Personal, Family, Health, Relationships, Education, Hobbies, Travel, Finance, Spirituality)
+			- subcategories: Array of up to 3 specific subcategories related to the main category
+			- primaryEmotion: Primary emotion expressed
+			- secondaryEmotion: Secondary emotion or "None"
+			- keywords: Array of up to 5 key phrases in English (translate if necessary)
+			- tone: Overall tone (e.g., positive, negative, neutral, reflective, humorous, serious)
+			- timeFocus: Time focus (past, present, future, or combination)
+			- confidenceScore: 0-100 based on clarity and meaningfulness
+
+			IMPORTANT: Return ONLY the JSON object with "Content Moderation" and "Content Analysis" sections. Ensure all fields are in English.
+
+			Diary entry: {input_text}
         `);
 
 		this.chain = new LLMChain({ llm: this.model, prompt });
@@ -57,6 +73,7 @@ export class TextAnalysisService {
 			const parsedResult = JSON.parse(cleanedResult);
 
 			// Ensure subcategories and keywords are arrays
+			/*
 			parsedResult.subcategories = Array.isArray(
 				parsedResult.subcategories,
 			)
@@ -65,9 +82,26 @@ export class TextAnalysisService {
 			parsedResult.keywords = Array.isArray(parsedResult.keywords)
 				? parsedResult.keywords
 				: parsedResult.keywords.split(',').map((s) => s.trim());
+			*/
+			const analysisData = parsedResult['Content Analysis'];
+			const moderationData = parsedResult['Content Moderation'];
 
-			// Validate and adjust the result
-			return this.validateAndAdjustResult(parsedResult);
+			const processedResult = {
+				...analysisData,
+				...moderationData,
+				subcategories: Array.isArray(analysisData.subcategories)
+					? analysisData.subcategories
+					: analysisData.subcategories
+							?.split(',')
+							?.map((s: string) => s.trim()) || [],
+				keywords: Array.isArray(analysisData.keywords)
+					? analysisData.keywords
+					: analysisData.keywords
+							?.split(',')
+							?.map((s: string) => s.trim()) || [],
+			};
+
+			return this.validateAndAdjustResult(processedResult);
 		} catch (error) {
 			Logger.error(
 				`Failed to analyze text: ${error.message}`,
@@ -120,6 +154,12 @@ export class TextAnalysisService {
 			timeFocus: result.timeFocus,
 			confidenceScore: confidenceScore,
 			isAnalyzed: true,
+			hasInappropriateContent: result.hasInappropriateContent || false,
+			// optional for violent filter
+			...(result.hasInappropriateContent && {
+				maskedContent: result.maskedContent,
+				inappropriateContent: result.inappropriateContent,
+			}),
 		};
 	}
 
@@ -135,6 +175,7 @@ export class TextAnalysisService {
 			timeFocus: null,
 			confidenceScore: 0,
 			isAnalyzed: false,
+			hasInappropriateContent: false,
 		};
 	}
 }
