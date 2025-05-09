@@ -19,7 +19,8 @@ export class TextAnalysisService {
 
 		this.model = new ChatOpenAI({
 			openAIApiKey: apiKey,
-			modelName: 'gpt-4o-mini',
+			//modelName: 'gpt-4o-mini',
+			modelName: 'gpt-4.1-nano',
 			temperature: 0.2,
 		});
 
